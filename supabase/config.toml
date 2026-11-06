@@ -1,0 +1,11 @@
+project_id = "arcadestore-app"
+
+[auth]
+site_url = "http://localhost:4173"
+additional_redirect_urls = ["http://localhost:4173/**", "http://127.0.0.1:4173/**", "https://YOUR_GITHUB_USERNAME.github.io/ARCADESTORE-APP/**"]
+
+[functions.sign-in]
+verify_jwt = false
+
+[functions.verify-otp]
+verify_jwt = false

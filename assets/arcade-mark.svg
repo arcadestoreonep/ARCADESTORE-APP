@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Arcade Store mark">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#eaffc2"/><stop offset="1" stop-color="#b8ff44"/></linearGradient></defs>
+  <rect x="3" y="3" width="58" height="58" rx="19" fill="#151a18" stroke="#d8ffab" stroke-opacity=".35"/>
+  <path d="M32 12 49 48H39l-3-7H27l-3 7H14L32 12Zm0 16-3.6 8h7.2L32 28Z" fill="url(#g)"/>
+  <circle cx="50" cy="17" r="3" fill="#c5ff5c"/>
+</svg>
