@@ -58,7 +58,7 @@ Supabase automatically injects its URL and service key into Edge Functions. The 
 
 1. Create a private or public GitHub repository for this folder and add the files locally. Nothing has been pushed from this build.
 2. Set `config.js` to the project URL and anon/publishable key, and set `demoMode: false`. These browser values are public by design; RLS and Edge Functions must enforce all access.
-3. Update the placeholder redirect URL in `supabase/config.toml` with the repository owner and repository name, then apply the Auth Site URL/redirect settings described above.
+3. The deployed Pages URL is `https://arcadestoreonep.github.io/ARCADESTORE-APP/`. Set it as the Supabase Auth Site URL and add it to the Auth redirect allowlist alongside both local preview URLs. The matching values are recorded in `supabase/config.toml` for local Supabase development.
 4. In GitHub repository settings, choose **Pages → Build and deployment → GitHub Actions**. The included `.github/workflows/pages.yml` deploys the repository root when `main` is pushed or the workflow is manually dispatched.
 5. Add the final GitHub Pages URL to Supabase Auth redirect URLs and run a signup/sign-in smoke check on the published site.
 
