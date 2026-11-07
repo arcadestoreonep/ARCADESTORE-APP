@@ -142,11 +142,53 @@ h1,h2,h3{letter-spacing:-.04em}.hero-copy p{color:#bdc9d7}
 @keyframes screen-enter{from{opacity:0;transform:translateY(14px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
 :root{--page-backdrop:url('./assets/backgrounds/arcade-emerald-flow.svg')}
 body{isolation:isolate;background-color:#030705;background-image:linear-gradient(180deg,rgba(3,7,5,.2),rgba(3,7,5,.46));background-repeat:no-repeat;background-size:100% 100%;background-attachment:fixed}
-.flow-scene{position:fixed;z-index:-1;inset:-8%;overflow:hidden;pointer-events:none;perspective:1100px;transform-style:preserve-3d;--flow-back-x:0px;--flow-back-y:0px;--flow-back-rx:0deg;--flow-back-ry:0deg;--flow-front-x:0px;--flow-front-y:0px;--flow-front-rx:0deg;--flow-front-ry:0deg}
+.flow-scene{position:fixed;z-index:-1;inset:-8%;overflow:hidden;pointer-events:none;perspective:1100px;transform-style:preserve-3d}
 .flow-plane{position:absolute;inset:-3%;transform-style:preserve-3d;will-change:transform,background-position}
-.flow-plane-back{background-image:var(--page-backdrop);background-position:34% 34%;background-size:124% 124%;background-repeat:no-repeat;transform:translate3d(var(--flow-back-x),var(--flow-back-y),-70px) rotateX(var(--flow-back-rx)) rotateY(var(--flow-back-ry)) scale(1.16);animation:emerald-current 30s linear infinite alternate}
-.flow-plane-front{opacity:.76;mix-blend-mode:screen;background-image:linear-gradient(116deg,transparent 20%,rgba(76,245,142,0) 34%,rgba(70,236,132,.22) 38%,rgba(181,255,207,.32) 40%,rgba(44,207,106,.1) 43%,transparent 51%),linear-gradient(164deg,transparent 53%,rgba(52,220,117,.17) 59%,rgba(146,255,184,.26) 62%,transparent 68%);background-size:210% 190%;background-position:30% 32%;transform:translate3d(var(--flow-front-x),var(--flow-front-y),35px) rotateX(var(--flow-front-rx)) rotateY(var(--flow-front-ry)) scale(1.12);animation:emerald-sheen 18s linear infinite alternate}
+.flow-plane-back{background-image:var(--page-backdrop);background-position:34% 34%;background-size:124% 124%;background-repeat:no-repeat;transform:translateZ(-70px) scale(1.16);animation:emerald-current 30s linear infinite alternate}
+.flow-plane-front{opacity:.76;mix-blend-mode:screen;background-image:linear-gradient(116deg,transparent 20%,rgba(76,245,142,0) 34%,rgba(70,236,132,.22) 38%,rgba(181,255,207,.32) 40%,rgba(44,207,106,.1) 43%,transparent 51%),linear-gradient(164deg,transparent 53%,rgba(52,220,117,.17) 59%,rgba(146,255,184,.26) 62%,transparent 68%);background-size:210% 190%;background-position:30% 32%;transform:translateZ(35px) scale(1.12);animation:emerald-sheen 18s linear infinite alternate}
 @keyframes emerald-current{from{background-position:30% 30%}to{background-position:70% 70%}}
 @keyframes emerald-sheen{from{background-position:25% 28%}to{background-position:75% 72%}}
 .ambient{display:none!important}
 @media(prefers-reduced-motion:reduce){.flow-plane{animation:none!important;transform:none!important;will-change:auto}}
+
+/* Shared emerald system: quieter motion, crisp surfaces, and one accent color. */
+:root{--bg:#050a07;--panel:rgba(8,16,11,.92);--panel-strong:#09130d;--line:rgba(211,239,216,.17);--text:#f1f5ef;--muted:#a8b6aa;--lime:#a5ef75;--shadow:0 22px 64px rgba(0,0,0,.38)}
+body{background-color:#040805}
+.flow-scene{opacity:.46}
+.flow-plane-back{filter:saturate(.78) brightness(.7)}
+.flow-plane-front{opacity:.38;mix-blend-mode:screen}
+.glass,.hero-copy,.auth-card,.feature-card,.admin-sidebar,.admin-stat{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.glass{background:linear-gradient(145deg,rgba(17,31,21,.91),rgba(7,14,10,.9) 72%);border-color:rgba(211,239,216,.19)}
+.hero{background:linear-gradient(130deg,rgba(8,18,12,.68),rgba(5,11,8,.76));border-color:rgba(211,239,216,.2)}
+.hero-copy{background:linear-gradient(145deg,rgba(13,26,17,.96),rgba(7,14,10,.96));border-color:rgba(211,239,216,.23)}
+.auth-card{background:linear-gradient(145deg,rgba(14,27,18,.97),rgba(7,14,10,.97));border-color:rgba(211,239,216,.25)}
+.feature-card,.admin-sidebar,.admin-stat{background:linear-gradient(145deg,rgba(15,29,19,.94),rgba(7,14,10,.93))}
+.eyebrow,.feature-icon,.text-button,.resend,.price,.profile-pic,.stat-grid strong,.listing-status.available{color:var(--lime)}
+.button:hover,.icon-button:hover,.avatar:hover{border-color:rgba(165,239,117,.65)}
+.button-primary{background:linear-gradient(125deg,#bdf28c,#89dc78);border-color:#a5ef75;color:#102012;box-shadow:0 8px 28px rgba(105,201,99,.18)}
+.button-primary:hover{background:#d0f8a7}
+.chip.active{background:linear-gradient(125deg,#bdf28c,#89dc78);border-color:#a5ef75;color:#102012}
+.input:focus,.select:focus,.textarea:focus{border-color:rgba(165,239,117,.78);box-shadow:0 0 0 3px rgba(165,239,117,.13)}
+.input,.select,.textarea{background:rgba(4,10,6,.78);border-color:rgba(211,239,216,.2)}
+.tabs{background:rgba(4,10,6,.72)}
+.bottom-nav{background:rgba(6,13,9,.96);border-color:rgba(211,239,216,.2)}
+.nav-item.active{color:var(--lime)}
+.switch input:checked + .switch-track,.switch input:checked ~ .switch-track{background:#78c96a;border-color:#a5ef75}
+.switch input:checked+span{background:#78c96a!important}.switch input:checked+span:before{background:#d8ffb8!important}
+.listing-image{background:linear-gradient(145deg,#182a1d,#0a120d)}
+.listing-image:before{content:none!important}
+.game-badge,.status-badge{border-color:rgba(211,239,216,.2)}
+.focus-visible,.button:focus-visible,.nav-item:focus-visible,.chip:focus-visible{outline:2px solid #a5ef75;outline-offset:3px}
+.game-orbit .art-tile{border-color:rgba(201,239,205,.3)}
+.art-tile:before{background:linear-gradient(180deg,rgba(5,13,8,.02),rgba(5,12,8,.82))}
+.art-tile:nth-child(2):before,.art-tile:nth-child(3):before{background:linear-gradient(180deg,rgba(5,13,8,.02),rgba(5,12,8,.82))}
+.listing-grid{grid-template-columns:minmax(0,1fr)}
+@media(min-width:680px){.listing-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1000px){.listing-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr))}}
+@media(max-width:520px){.glass{background:linear-gradient(145deg,rgba(15,28,19,.95),rgba(7,14,10,.94))}.flow-scene{opacity:.34}.hero{background:linear-gradient(150deg,rgba(7,16,10,.88),rgba(5,11,8,.94))}.hero-copy{background:linear-gradient(145deg,rgba(13,26,17,.97),rgba(7,14,10,.97))}}
+
+/* Keep the auth panes the same size so the FLIP transform stays compositor-friendly. */
+@media(min-width:681px){.auth-card{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.auth-main,.auth-side{animation:none!important}
+.auth-content,.auth-side>*{animation:auth-copy-in .2s ease-out both}
+@keyframes auth-copy-in{from{opacity:.35;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
