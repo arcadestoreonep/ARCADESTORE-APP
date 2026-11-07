@@ -61,3 +61,19 @@ test('browser config points to the intended Supabase project and the app has no 
   assert.doesNotMatch(contents,/ephqgcpjntjotavkbrxb|bjmxpfwwgtavgxclqqgo|payscrow/i,file);
  }
 });
+
+test('signed-in buyers still land on the game artwork homepage',async()=>{
+ const app=await read('../src/main.js');
+ assert.match(app,/async function init\(\)[\s\S]*setScreen\('home'\)/);
+ assert.match(app,/game-picker-grid/);
+ assert.match(app,/state\.gameArt\[game\]/);
+ assert.doesNotMatch(app,/alt="\$\{esc\(game\)\} logo" loading="lazy"/);
+});
+
+test('checkout payload uses Flutterwave Standard API configuration spelling',async()=>{
+ const checkout=await read('../supabase/functions/checkout/index.ts');
+ const operations=await read('../supabase/functions/_shared/operations.mjs');
+ assert.match(checkout,/flutterwavePaymentRequest/);
+ assert.match(operations,/configuration:\{session_duration:20,max_retry_attempt:3\}/);
+ assert.doesNotMatch(operations,/configurations:/);
+});
