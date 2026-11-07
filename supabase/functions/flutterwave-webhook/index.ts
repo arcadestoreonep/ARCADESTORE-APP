@@ -16,7 +16,7 @@ Deno.serve(async req=>{
   const {data:order,error}=await db.from('orders').select('id,buyer_id,amount,status,flw_tx_ref,hold_until').eq('flw_tx_ref',String(event.data.tx_ref)).maybeSingle();
   if(error)throw new Error('Could not find the matching order');
   if(!order)return json({received:true,matched:false});
-  if(['paid','cancelled','refunded'].includes(order.status))return json({received:true,status:order.status,duplicate:order.status==='paid'});
+  if(['paid','refunded'].includes(order.status))return json({received:true,status:order.status,duplicate:order.status==='paid'});
 
   const rawMode=Deno.env.get('FLW_MODE')||'test';
   const secret=env(String(rawMode).toLowerCase()==='live'?'FLW_LIVE_SECRET_KEY':'FLW_TEST_SECRET_KEY');
