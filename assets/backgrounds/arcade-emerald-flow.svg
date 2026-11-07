@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" fill="none">
+  <defs>
+    <linearGradient id="ribbon-a" x1="95" y1="757" x2="1479" y2="245" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#07170F"/>
+      <stop offset=".32" stop-color="#0C3921"/>
+      <stop offset=".58" stop-color="#06170E"/>
+      <stop offset=".82" stop-color="#12482A"/>
+      <stop offset="1" stop-color="#06130C"/>
+    </linearGradient>
+    <linearGradient id="ribbon-b" x1="220" y1="180" x2="1377" y2="767" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#07140D"/>
+      <stop offset=".43" stop-color="#0B2B19"/>
+      <stop offset=".7" stop-color="#103A22"/>
+      <stop offset="1" stop-color="#06110B"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="142" y1="786" x2="1484" y2="255" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#21A95B" stop-opacity="0"/>
+      <stop offset=".25" stop-color="#3BEC83" stop-opacity=".68"/>
+      <stop offset=".53" stop-color="#A1FFC3" stop-opacity=".88"/>
+      <stop offset=".75" stop-color="#36DC78" stop-opacity=".72"/>
+      <stop offset="1" stop-color="#20A856" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="edge-soft" x1="45" y1="335" x2="1548" y2="718" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#36C870" stop-opacity="0"/>
+      <stop offset=".48" stop-color="#74F69F" stop-opacity=".26"/>
+      <stop offset=".72" stop-color="#30D56F" stop-opacity=".58"/>
+      <stop offset="1" stop-color="#22A85D" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="pool" cx="0" cy="0" r="1" gradientTransform="matrix(775 0 0 510 1070 520)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B5A30" stop-opacity=".34"/>
+      <stop offset="1" stop-color="#041009" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <path fill="url(#pool)" d="M0 0h1600v1000H0z"/>
+
+  <!-- Original interlocking ribbons, drawn for the Arcade Store palette. -->
+  <path fill="url(#ribbon-a)" d="M-118 792c202-15 344-75 492-187 153-117 265-227 438-286 190-65 363-27 510-118 107-66 177-148 296-237v293c-102 76-176 156-284 218-170 97-345 82-507 149-177 73-281 190-423 299-153 117-313 179-522 196V792Z"/>
+  <path stroke="url(#edge)" stroke-width="3" d="M-88 786c202-15 339-74 484-183 155-116 269-228 440-285 190-64 363-28 510-118 108-66 176-149 294-237"/>
+  <path stroke="#89FFB2" stroke-opacity=".14" stroke-width="1" d="M-73 807c206-13 347-72 497-183 154-114 269-225 442-282 190-63 364-26 511-117 108-67 177-151 296-240"/>
+
+  <path fill="url(#ribbon-b)" d="M-145 268c231 113 405 156 591 153 187-3 323-77 483-90 198-17 380 74 555 163 70 36 135 67 200 89v246c-91-32-176-74-273-124-157-81-298-151-462-153-161-2-298 76-487 88-207 13-408-44-607-135V268Z"/>
+  <path stroke="url(#edge-soft)" stroke-width="2" d="M-121 293c229 108 402 150 587 147 187-3 324-77 484-90 198-17 380 73 554 161 70 35 135 66 200 88"/>
+
+  <path fill="#0C2818" fill-opacity=".66" d="M-62 1000c185-87 327-192 458-323 130-130 233-255 393-328 111-50 229-66 356-73 167-10 309-22 455-126v251c-144 81-280 94-441 104-115 7-215 19-305 60-139 64-237 175-372 310-151 151-318 262-544 354H-62Z"/>
+  <path stroke="#43E987" stroke-opacity=".27" stroke-width="2" d="M-43 995c184-86 321-188 451-318 132-132 235-258 397-331 111-50 229-66 356-73 168-10 311-22 457-127"/>
+
+  <path fill="#021008" fill-opacity=".46" d="M0 0h1600v129c-158 74-302 112-481 118-170 6-327-21-474 28C472 333 353 442 190 508 126 534 63 551 0 560V0Z"/>
+  <path stroke="#2FD977" stroke-opacity=".12" stroke-width="2" d="M0 567c66-9 128-24 194-51 163-66 282-174 456-232 148-49 306-22 475-28 178-6 319-44 475-118"/>
+</svg>
