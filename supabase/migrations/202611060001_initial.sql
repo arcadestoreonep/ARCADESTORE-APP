@@ -1,8 +1,7 @@
 create extension if not exists pgcrypto;
 create table if not exists public.profiles(id uuid primary key references auth.users(id) on delete cascade,username text not null unique check(username ~ '^[A-Za-z0-9_]{3,24}$'),display_name text not null default '',email text not null,legal_name text,created_at timestamptz not null default now(),updated_at timestamptz not null default now());
 create or replace function public.create_profile_for_user() returns trigger language plpgsql security definer set search_path=public,auth as $$ declare n text; begin n:=coalesce(new.raw_user_meta_data->>'username',''); if n !~ '^[A-Za-z0-9_]{3,24}$' then raise exception 'Invalid username'; end if; insert into public.profiles(id,username,display_name,email) values(new.id,n,coalesce(new.raw_user_meta_data->>'display_name',n),new.email); return new; end $$;
-drop trigger if exists on_auth_user_created_arcadestore on auth.users;
-create trigger on_auth_user_created_arcadestore after insert on auth.users for each row execute procedure public.create_profile_for_user();
+do $$ begin if not exists(select 1 from pg_trigger where tgrelid='auth.users'::regclass and tgname='on_auth_user_created_arcadestore' and not tgisinternal) then execute 'create trigger on_auth_user_created_arcadestore after insert on auth.users for each row execute procedure public.create_profile_for_user()'; end if; end $$;
 create table if not exists public.feature_flags(key text primary key check(key in ('buyer_selling','admin_publishing','reservations','checkout','payouts','live_payments')),enabled boolean not null,updated_at timestamptz not null default now(),updated_by uuid references auth.users(id));
 insert into public.feature_flags(key,enabled) values('buyer_selling',false),('admin_publishing',true),('reservations',true),('checkout',true),('payouts',false),('live_payments',false) on conflict(key) do nothing;
 create table if not exists public.feature_flag_logs(id bigint generated always as identity primary key,key text not null,old_value boolean not null,new_value boolean not null,actor_id uuid not null references auth.users(id),created_at timestamptz not null default now());
@@ -14,8 +13,7 @@ create table if not exists public.reservations(id uuid primary key default gen_r
 create unique index if not exists one_active_reservation_per_listing on public.reservations(listing_id) where status in ('active','checkout');
 create index if not exists buyer_reservations_idx on public.reservations(buyer_id,status,expires_at);
 create table if not exists public.orders(id uuid primary key default gen_random_uuid(),buyer_id uuid not null references auth.users(id),amount bigint not null check(amount>0),status text not null check(status in ('held','paid','expired','needs_refund','refunded','cancelled')),flw_tx_ref text unique,flw_transaction_id text unique,checkout_url text,hold_until timestamptz,created_at timestamptz not null default now(),paid_at timestamptz,refund_reason text,refunded_at timestamptz);
-alter table public.reservations drop constraint if exists reservations_order_id_fkey;
-alter table public.reservations add constraint reservations_order_id_fkey foreign key(order_id) references public.orders(id);
+do $$ begin if not exists(select 1 from pg_constraint where conrelid='public.reservations'::regclass and conname='reservations_order_id_fkey') then alter table public.reservations add constraint reservations_order_id_fkey foreign key(order_id) references public.orders(id); end if; end $$;
 create table if not exists public.order_items(id uuid primary key default gen_random_uuid(),order_id uuid not null references public.orders(id) on delete cascade,listing_id uuid not null references public.listings(id),seller_id uuid not null references auth.users(id),game text not null,gross bigint not null,commission bigint not null default 0,net bigint not null,unique(order_id,listing_id));
 create table if not exists public.ledger(id uuid primary key default gen_random_uuid(),user_id uuid not null references auth.users(id),direction text not null check(direction in ('credit','debit')),amount bigint not null check(amount>0),entry_type text not null check(entry_type in ('sale','payout','payout_reversal')),order_id uuid references public.orders(id),payout_id uuid,reference text unique,created_at timestamptz not null default now());
 create index if not exists ledger_user_idx on public.ledger(user_id,created_at desc);
@@ -55,7 +53,6 @@ alter table public.seller_bank_details enable row level security;
 alter table public.payouts enable row level security;
 alter table public.auth_attempts enable row level security;
 create policy profiles_read_self_or_owner on public.profiles for select using(id=auth.uid() or public.is_owner());
-drop policy if exists profiles_update_self on public.profiles;
 create policy flags_read_public on public.feature_flags for select using(true);
 create policy flags_owner_update on public.feature_flags for update using(public.is_owner()) with check(public.is_owner());
 create policy logs_owner_read on public.feature_flag_logs for select using(public.is_owner());

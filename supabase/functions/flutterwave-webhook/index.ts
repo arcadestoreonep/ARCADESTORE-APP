@@ -1,21 +1,16 @@
 import {flwRequest,json,service,env} from '../_shared/server.ts';
 import {validateFlutterwaveKey} from '../_shared/core.mjs';
-
-function equalSecret(a:string,b:string){
- const left=new TextEncoder().encode(a),right=new TextEncoder().encode(b);
- if(left.length!==right.length)return false;
- let diff=0;for(let i=0;i<left.length;i++)diff|=left[i]^right[i];
- return diff===0;
-}
+import {webhookRequestStatus} from '../_shared/webhook.mjs';
 
 Deno.serve(async req=>{
  if(req.method!=='POST')return json({error:'method not allowed'},405);
  try{
-  const expected=env('FLW_WEBHOOK_SECRET_HASH');
+  const expected=env('FLW_SECRET_HASH');
   const supplied=req.headers.get('verif-hash')||'';
-  if(!equalSecret(expected,supplied))return json({error:'invalid webhook signature'},401);
   const event=await req.json().catch(()=>null);
-  if(!event||event.event!=='charge.completed'||!event.data?.tx_ref)return json({received:true});
+  const gate=webhookRequestStatus(expected,supplied,event);
+  if(gate===401)return json({error:'invalid webhook signature'},401);
+  if(gate!==200)return json({error:'unsupported webhook event'},400);
 
   const db=service();
   const {data:order,error}=await db.from('orders').select('id,buyer_id,amount,status,flw_tx_ref,hold_until').eq('flw_tx_ref',String(event.data.tx_ref)).maybeSingle();
