@@ -62,12 +62,13 @@ test('browser config points to the intended Supabase project and the app has no 
  }
 });
 
-test('signed-in buyers still land on the game artwork homepage',async()=>{
+test('landing uses only the three supplied static game images; signed-in routing stays on Market',async()=>{
  const app=await read('../src/main.js');
- assert.match(app,/async function init\(\)[\s\S]*setScreen\('home'\)/);
- assert.match(app,/game-picker-grid/);
- assert.match(app,/state\.gameArt\[game\]/);
- assert.doesNotMatch(app,/alt="\$\{esc\(game\)\} logo" loading="lazy"/);
+ for(const path of ['./assets/games/bloodstrike.jpg','./assets/games/free-fire.jpg','./assets/games/call-of-duty.jpg'])assert.match(app,new RegExp(path.replaceAll('.','\\.')));
+ assert.match(app,/async function init\(\)[\s\S]*if\(state\.backend&&state\.session\)\{setScreen\('Market'\)/);
+ assert.doesNotMatch(app,/state\.gameArt\[game\]/);
+ const startup=app.match(/async function init\(\)\{([^}]+(?:\}[^}]+)?)\}/)?.[1]||'';
+ assert.doesNotMatch(startup,/loadGameArt/);
 });
 
 test('checkout payload uses Flutterwave Standard API configuration spelling',async()=>{
