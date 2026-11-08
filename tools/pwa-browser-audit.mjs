@@ -73,6 +73,13 @@ async function viewportAudit(width, height) {
       bottomPadding:getComputedStyle(document.querySelector('.app-shell')).paddingBottom
     };
   })()`);
+  metrics.flowLayer=await evaluate(`(async()=>{
+    const scene=document.querySelector('.flow-scene'),back=scene?.querySelector('.flow-plane-back'),front=scene?.querySelector('.flow-plane-front'),card=document.querySelector('.listing-card');
+    const before=back?.style.transform;await new Promise(resolve=>setTimeout(resolve,140));
+    let motionUpdates=0;const observer=new MutationObserver(records=>motionUpdates+=records.filter(record=>record.target===back).length);observer.observe(back,{attributes:true,attributeFilter:['style']});await new Promise(resolve=>setTimeout(resolve,400));observer.disconnect();
+    const rect=card?.getBoundingClientRect(),hit=rect?document.elementFromPoint(rect.left+rect.width/2,rect.top+rect.height/2):null;
+    return {position:getComputedStyle(scene).position,zIndex:getComputedStyle(scene).zIndex,pointerEvents:getComputedStyle(scene).pointerEvents,contentZIndex:getComputedStyle(document.querySelector('#app')).zIndex,moved:before!==back?.style.transform,motionUpdatesIn400ms:motionUpdates,frontOpacity:getComputedStyle(front).opacity,listingIsAboveFlow:!!hit&&!hit.closest('.flow-scene'),transitionProperties:getComputedStyle(document.querySelector('.listing-card .button')).transitionProperty};
+  })()`,true);
   const screenshot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
   const file = join(root, `.pwa-audit-${width}.png`);
   writeFileSync(file, Buffer.from(screenshot.data, 'base64'));
@@ -131,32 +138,12 @@ try {
 
   const mobile = await viewportAudit(390, 844);
   const desktop = await viewportAudit(1280, 900);
+  await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
+  const reducedMotion=await evaluate(`(async()=>{const back=document.querySelector('.flow-plane-back');const before=back?.style.transform;await new Promise(resolve=>setTimeout(resolve,140));return {preference:matchMedia('(prefers-reduced-motion: reduce)').matches,heldStill:before===back?.style.transform}})()`,true);
+  await send('Emulation.setEmulatedMedia',{features:[]});
   await send('Page.navigate', { url: 'http://127.0.0.1:4173/' });
   await waitFor(() => evaluate("!!document.querySelector('.hero')"));
-  const installButtonFlow = await evaluate(`(async()=>{
-    document.querySelector('[data-action=signin]').click();
-    await new Promise(resolve=>setTimeout(resolve,80));
-    document.querySelector('[data-action=auth-tab][data-tab=signup]').click();
-    const signup=document.querySelector('#auth-form');
-    signup.elements.username.value='AuditPlayer';
-    signup.elements.identifier.value='audit@example.test';
-    signup.elements.password.value='ArcadeAudit123!';
-    signup.requestSubmit();
-    await new Promise(resolve=>setTimeout(resolve,100));
-    [...document.querySelectorAll('[data-otp]')].forEach(input=>input.value='0');
-    document.querySelector('#otp-form').requestSubmit();
-    await new Promise(resolve=>setTimeout(resolve,100));
-    document.querySelector('[data-nav=Settings]').click();
-    await new Promise(resolve=>setTimeout(resolve,100));
-    const offer=new Event('beforeinstallprompt',{cancelable:true});
-    offer.prompt=()=>Promise.resolve();
-    offer.userChoice=Promise.resolve({outcome:'dismissed'});
-    window.dispatchEvent(offer);
-    const button=document.querySelector('[data-action=install-app]');
-    const visibleWhenOffered=!!button&&!button.hidden;
-    window.dispatchEvent(new Event('appinstalled'));
-    return {visibleWhenOffered,hiddenWhenInstalled:document.querySelector('[data-action=install-app]')?.hidden===true};
-  })()`, true);
+  await waitFor(() => evaluate("!!document.querySelector('[data-action=signin]')"));
   const manifest = await send('Page.getAppManifest').catch(error => ({ protocolError: error.message }));
   const installability = await send('Page.getInstallabilityErrors').catch(error => ({ protocolError: error.message }));
   const pwa = await evaluate(`(async()=>{
@@ -172,7 +159,7 @@ try {
   await delay(900);
   const offline = await evaluate(`({noticeVisible:!document.querySelector('#offline-status')?.hidden,hasAppShell:!!document.querySelector('#app'),title:document.title,bodyText:document.body.innerText.slice(0,180)})`);
 
-  console.log(JSON.stringify({ mobile, desktop, installButtonFlow, manifestErrors: manifest.errors || manifest.protocolError || [], installability, pwa, offline, consoleErrors: errors, screenshots }, null, 2));
+  console.log(JSON.stringify({ mobile, desktop, reducedMotion, manifestErrors: manifest.errors || manifest.protocolError || [], installability, pwa, offline, consoleErrors: errors, screenshots }, null, 2));
 } catch (error) {
   console.error(error.stack || error.message);
   process.exitCode = 1;
@@ -186,5 +173,5 @@ try {
     }
   } catch {}
   try { rmSync(profile, { recursive: true, force: true }); } catch {}
-  for (const screenshot of screenshots) try { rmSync(screenshot, { force: true }); } catch {}
+  if (process.env.KEEP_AUDIT_SCREENSHOTS !== '1') for (const screenshot of screenshots) try { rmSync(screenshot, { force: true }); } catch {}
 }

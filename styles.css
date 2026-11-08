@@ -31,7 +31,7 @@ h1,h2,h3{letter-spacing:-.04em}.hero-copy p{color:#bdc9d7}
 @media(prefers-reduced-motion:reduce){.feature-card:hover,.listing-card:hover{transform:none}}
 .bottom-nav{left:50%;right:auto;bottom:calc(8px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(calc(100% - 24px),470px);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:6px;background:rgba(8,14,22,.9);border:1px solid rgba(188,221,248,.18);border-radius:999px;box-shadow:0 14px 40px rgba(0,0,0,.4)}.nav-item{width:auto;min-width:0;min-height:52px;border-radius:999px;font-size:10px}.toast-region{bottom:calc(76px + env(safe-area-inset-bottom))}
 .screen-enter{animation:screen-enter .52s cubic-bezier(.2,.75,.25,1) both}.game-orbit .art-tile{will-change:transform;animation:arcade-float 6.4s ease-in-out infinite}.game-orbit .art-tile:nth-child(2){animation-delay:-2.1s}.game-orbit .art-tile:nth-child(3){animation-delay:-4.2s}.hero:before{animation:hero-halo 7s ease-in-out infinite alternate}.button,.nav-item,.chip,.icon-button,.avatar{transition:transform .2s ease,background-color .2s ease,border-color .2s ease,color .2s ease,box-shadow .2s ease}.nav-item:active,.chip:active,.button:active{transform:scale(.97)}.button:focus-visible,.nav-item:focus-visible,.chip:focus-visible{outline:2px solid #80eff0;outline-offset:3px}
-@keyframes screen-enter{from{opacity:0;transform:translateY(14px) scale(.99);filter:blur(3px)}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
+@keyframes screen-enter{from{opacity:0;transform:translateY(14px) scale(.99);}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes arcade-float{0%,100%{transform:translate3d(0,0,0) rotateY(-11deg) rotateX(4deg) rotateZ(0)}50%{transform:translate3d(0,-13px,18px) rotateY(-5deg) rotateX(7deg) rotateZ(-1deg)}}
 @keyframes hero-halo{from{transform:scale(.92);opacity:.55}to{transform:scale(1.12);opacity:1}}
 .game-orbit .art-tile:nth-child(2){animation-name:arcade-float-warm}.game-orbit .art-tile:nth-child(3){animation-name:arcade-float-cool}
@@ -141,22 +141,21 @@ h1,h2,h3{letter-spacing:-.04em}.hero-copy p{color:#bdc9d7}
 .ambient,.listing-image:before,.hero:before{filter:none!important}
 @keyframes screen-enter{from{opacity:0;transform:translateY(14px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
 :root{--page-backdrop:url('./assets/backgrounds/arcade-emerald-flow.svg')}
-body{isolation:isolate;background-color:#030705;background-image:linear-gradient(180deg,rgba(3,7,5,.2),rgba(3,7,5,.46));background-repeat:no-repeat;background-size:100% 100%;background-attachment:fixed}
-.flow-scene{position:fixed;z-index:-1;inset:-8%;overflow:hidden;pointer-events:none;perspective:1100px;transform-style:preserve-3d}
-.flow-plane{position:absolute;inset:-3%;transform-style:preserve-3d;will-change:transform,background-position}
-.flow-plane-back{background-image:var(--page-backdrop);background-position:34% 34%;background-size:124% 124%;background-repeat:no-repeat;transform:translateZ(-70px) scale(1.16);animation:emerald-current 30s linear infinite alternate}
-.flow-plane-front{opacity:.76;mix-blend-mode:screen;background-image:linear-gradient(116deg,transparent 20%,rgba(76,245,142,0) 34%,rgba(70,236,132,.22) 38%,rgba(181,255,207,.32) 40%,rgba(44,207,106,.1) 43%,transparent 51%),linear-gradient(164deg,transparent 53%,rgba(52,220,117,.17) 59%,rgba(146,255,184,.26) 62%,transparent 68%);background-size:210% 190%;background-position:30% 32%;transform:translateZ(35px) scale(1.12);animation:emerald-sheen 18s linear infinite alternate}
-@keyframes emerald-current{from{background-position:30% 30%}to{background-position:70% 70%}}
-@keyframes emerald-sheen{from{background-position:25% 28%}to{background-position:75% 72%}}
+body{isolation:isolate;background-color:#030705;background-image:linear-gradient(180deg,rgba(3,7,5,.12),rgba(3,7,5,.38));background-repeat:no-repeat;background-size:100% 100%;background-attachment:fixed}
+.flow-scene{position:fixed;z-index:0;inset:-8%;overflow:hidden;pointer-events:none;perspective:1100px;transform-style:preserve-3d}
+.flow-scene:after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(2,5,3,.08) 0%,rgba(2,6,4,.2) 22%,rgba(2,6,4,.49) 52%,rgba(2,5,3,.24) 76%,rgba(2,5,3,.08) 100%);}
+.flow-plane{position:absolute;inset:-3%;transform-style:preserve-3d;will-change:transform;}
+.flow-plane-back{background-image:var(--page-backdrop);background-position:50% 50%;background-size:124% 124%;background-repeat:no-repeat;transform:translate3d(0,0,-70px) scale(1.2);filter:saturate(1.08) brightness(.88)}
+.flow-plane-front{opacity:.55;mix-blend-mode:screen;background-image:linear-gradient(116deg,transparent 20%,rgba(76,245,142,0) 34%,rgba(70,236,132,.5) 38%,rgba(181,255,207,.78) 40%,rgba(44,207,106,.32) 43%,transparent 51%),linear-gradient(164deg,transparent 53%,rgba(52,220,117,.38) 59%,rgba(170,255,190,.6) 62%,transparent 68%);background-size:210% 190%;background-position:50% 45%;transform:translate3d(0,0,35px) scale(1.16)}
 .ambient{display:none!important}
-@media(prefers-reduced-motion:reduce){.flow-plane{animation:none!important;transform:none!important;will-change:auto}}
+@media(prefers-reduced-motion:reduce){.flow-plane{will-change:auto}}
 
 /* Shared emerald system: quieter motion, crisp surfaces, and one accent color. */
 :root{--bg:#050a07;--panel:rgba(8,16,11,.92);--panel-strong:#09130d;--line:rgba(211,239,216,.17);--text:#f1f5ef;--muted:#a8b6aa;--lime:#a5ef75;--shadow:0 22px 64px rgba(0,0,0,.38)}
 body{background-color:#040805}
-.flow-scene{opacity:.46}
-.flow-plane-back{filter:saturate(.78) brightness(.7)}
-.flow-plane-front{opacity:.38;mix-blend-mode:screen}
+.flow-scene{opacity:.84}
+.flow-plane-back{filter:saturate(1.28) brightness(1.12) contrast(1.08)}
+.flow-plane-front{opacity:.74;mix-blend-mode:screen}
 .glass,.hero-copy,.auth-card,.feature-card,.admin-sidebar,.admin-stat{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 .glass{background:linear-gradient(145deg,rgba(17,31,21,.91),rgba(7,14,10,.9) 72%);border-color:rgba(211,239,216,.19)}
 .hero{background:linear-gradient(130deg,rgba(8,18,12,.68),rgba(5,11,8,.76));border-color:rgba(211,239,216,.2)}
@@ -232,3 +231,13 @@ body{background-color:#040805}
 }
 .offline-status{position:relative;z-index:11;padding:10px 16px;text-align:center;color:var(--text);background:rgba(16,16,22,.96);border-bottom:1px solid var(--line);font-size:13px}
 .offline-status[hidden]{display:none}
+
+
+/* Fixed motion layer stays beneath interactive content. */
+.topbar,#app{position:relative;z-index:1}
+.flow-scene{z-index:0;isolation:isolate}
+.flow-scene:after{background:radial-gradient(ellipse at 8% 5%,rgba(165,239,117,.12),transparent 30%),radial-gradient(ellipse at 96% 16%,rgba(165,239,117,.1),transparent 32%),linear-gradient(180deg,rgba(2,5,3,.04) 0%,rgba(2,6,4,.16) 22%,rgba(2,6,4,.48) 52%,rgba(2,5,3,.2) 76%,rgba(2,5,3,.04) 100%)}
+.listing-grid{position:relative;isolation:isolate}
+.listing-grid:before{content:"";position:absolute;inset:-12px;z-index:-1;pointer-events:none;border-radius:28px;background:linear-gradient(180deg,rgba(3,8,5,.14),rgba(3,8,5,.3) 48%,rgba(3,8,5,.16))}
+*,*::before,*::after{transition-property:transform,opacity!important}
+@media(prefers-reduced-motion:reduce){.flow-plane{will-change:auto}.flow-scene:after{background:linear-gradient(180deg,rgba(2,5,3,.04),rgba(2,6,4,.38) 52%,rgba(2,5,3,.04))}}
