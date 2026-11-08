@@ -47,6 +47,21 @@ async function viewportAudit(width, height) {
   });
   await send('Page.navigate', { url: 'http://127.0.0.1:4173/' });
   await waitFor(() => evaluate("!!document.querySelector('.hero')"));
+  const flowErrorsStart=errors.length;
+  await evaluate("document.querySelector('[data-nav=Market]').click()");
+  await waitFor(() => evaluate("!!document.querySelector('.listing-grid')"));
+  const exploreStore=await evaluate("({screen:document.querySelector('.page-title h2')?.textContent,listingCards:document.querySelectorAll('.listing-card').length})");
+  await send('Page.navigate', { url: 'http://127.0.0.1:4173/' });
+  await waitFor(() => evaluate("!!document.querySelector('[data-action=signin]')"));
+  await evaluate("document.querySelector('[data-action=signin]').click()");
+  await waitFor(() => evaluate("!!document.querySelector('#auth-card')"));
+  const logIn=await evaluate("({screen:document.querySelector('#auth-card h2')?.textContent,loginForm:!!document.querySelector('#auth-card')})");
+  const flowConsoleErrors=errors.slice(flowErrorsStart);
+  if(exploreStore.screen!=='Find your next main'||exploreStore.listingCards<1)throw new Error(`Explore the store did not open the market at ${width}px`);
+  if(logIn.screen!=='Welcome back'||!logIn.loginForm)throw new Error(`Log in did not open sign-in at ${width}px`);
+  if(flowConsoleErrors.length)throw new Error(`Login/market flow logged console errors at ${width}px: ${flowConsoleErrors.join('; ')}`);
+  await send('Page.navigate', { url: 'http://127.0.0.1:4173/' });
+  await waitFor(() => evaluate("!!document.querySelector('.hero')"));
   await evaluate("document.querySelector('[data-nav=Market]').click()");
   await waitFor(() => evaluate("!!document.querySelector('.listing-grid .listing-card')"));
   const metrics = await evaluate(`(() => {
@@ -73,6 +88,7 @@ async function viewportAudit(width, height) {
       bottomPadding:getComputedStyle(document.querySelector('.app-shell')).paddingBottom
     };
   })()`);
+  metrics.browserFlows={exploreStore,logIn,consoleErrors:flowConsoleErrors};
   metrics.flowLayer=await evaluate(`(async()=>{
     const scene=document.querySelector('.flow-scene'),back=scene?.querySelector('.flow-plane-back'),front=scene?.querySelector('.flow-plane-front'),card=document.querySelector('.listing-card');
     const before=back?.style.transform;await new Promise(resolve=>setTimeout(resolve,140));
