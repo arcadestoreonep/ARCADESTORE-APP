@@ -1,5 +1,5 @@
 import {body,env,fail,featureMap,identity,json,service} from '../_shared/server.ts';
-import {readListingConfiguration,writeListingConfiguration} from '../_shared/listings.mjs';
+import {listingDatabaseFailure,readListingConfiguration,writeListingConfiguration} from '../_shared/listings.mjs';
 import {requireFeature,requireRole} from '../_shared/core.mjs';
 
 const games=['Bloodstrike','Free Fire','Call of Duty'];
@@ -39,8 +39,8 @@ Deno.serve(async req=>{
   if(data.action==='create_listing'){
    requireFeature(flags,'admin_publishing');const values=listingValues(data);
    const {rentalOptions,...columns}=values;const {data:listing,error}=await db.from('listings').insert({seller_id:user.id,owner_type:'platform',owner_vendor_id:null,...columns,status:'draft'}).select('id').single();
-   if(error||!listing)throw new Error('could not create listing');
-   try{await writeListingConfiguration(db,listing.id,{credentials:data.credentials,transferInstructions:data.transfer_instructions,rentalOptions:values.delivery_type==='rental'?values.rentalOptions:[]},key);}
+   if(error||!listing)throw listingDatabaseFailure(error,'Could not create the listing');
+   try{await writeListingConfiguration(db,listing.id,{credentials:data.credentials,transferInstructions:data.transfer_instructions,rentalOptions:values.delivery_type==='rental'?values.rentalOptions:[]},key,{allowEmptyCredentials:data.save_as_draft===true});}
    catch(error){await db.from('listings').delete().eq('id',listing.id);throw error;}
    return json({listing_id:listing.id});
   }
@@ -52,8 +52,8 @@ Deno.serve(async req=>{
   if(data.action==='update_listing'){
    const listing=await getListing(String(data.listing_id||''));if(['reserved','held','sold','rented','deleted'].includes(listing.status))throw new Error('this listing cannot be edited in its current status');
    const values=listingValues(data);const {error}=await db.from('listings').update({game:values.game,price:values.price,description:values.description,delivery_type:values.delivery_type,updated_at:new Date().toISOString(),updated_by:user.id}).eq('id',listing.id);
-   if(error)throw new Error('could not update listing');
-   await writeListingConfiguration(db,listing.id,{credentials:data.credentials,transferInstructions:data.transfer_instructions,rentalOptions:values.delivery_type==='rental'?values.rentalOptions:[]},key);
+   if(error)throw listingDatabaseFailure(error,'Could not update the listing');
+   await writeListingConfiguration(db,listing.id,{credentials:data.credentials,transferInstructions:data.transfer_instructions,rentalOptions:values.delivery_type==='rental'?values.rentalOptions:[]},key,{allowEmptyCredentials:data.save_as_draft===true&&listing.status==='draft'});
    return json({ok:true,listing_id:listing.id});
   }
   if(data.action==='add_listing_credentials'){
@@ -75,9 +75,9 @@ Deno.serve(async req=>{
    const listing=await getListing(String(data.listing_id||''));
    if(data.action==='publish_listing'){
     requireFeature(flags,'admin_publishing');if(!['draft','hidden','paused','published','active'].includes(listing.status))throw new Error('listing cannot be activated from this state');
-    const {count}=await db.from('listing_credentials').select('id',{count:'exact',head:true}).eq('listing_id',listing.id);const {data:legacy}=await db.from('listing_secrets').select('listing_id').eq('listing_id',listing.id).maybeSingle();if(!count&&!legacy)throw new Error('add credentials before publishing');
+    const {count,error:credentialError}=await db.from('listing_credentials').select('id',{count:'exact',head:true}).eq('listing_id',listing.id);if(credentialError)throw listingDatabaseFailure(credentialError,'Could not check listing credentials');const {data:legacy,error:legacyError}=await db.from('listing_secrets').select('listing_id').eq('listing_id',listing.id).maybeSingle();if(legacyError)throw listingDatabaseFailure(legacyError,'Could not check legacy listing credentials');if(!count&&!legacy)throw new Error('Add at least one credential before publishing this listing.');
     if(listing.delivery_type==='rental'){const {count:options}=await db.from('listing_rental_options').select('id',{count:'exact',head:true}).eq('listing_id',listing.id).eq('enabled',true);if(!options)throw new Error('add an available rental duration before publishing');}
-    const {error}=await db.from('listings').update({status:'active',updated_by:user.id,updated_at:new Date().toISOString()}).eq('id',listing.id);if(error)throw new Error('could not activate listing');return json({ok:true});
+    const {error}=await db.from('listings').update({status:'active',updated_by:user.id,updated_at:new Date().toISOString()}).eq('id',listing.id);if(error)throw listingDatabaseFailure(error,'Could not publish the listing');return json({ok:true});
    }
    if(data.action==='hide_listing'){
     if(['reserved','held','sold','rented'].includes(listing.status))throw new Error('reserved, paid, or rented listings cannot be paused');

@@ -37,6 +37,7 @@ test('landing buttons follow their expected delegated routes and UI errors stay 
  assert.match(app,/if\(t\.dataset\.nav\)\{await navTo\(t\.dataset\.nav\);/);
  assert.match(app,/if\(action==='signup'\|\|action==='signin'\)\{state\.authTab=action;setScreen\('auth'\);/);
  assert.match(app,/function navTo\(name\)[\s\S]*?state\.screen=name;render\(\)/);
- assert.match(app,/function reportActionError\(error\)\{console\.error\('[^']+',error\);toast\('[^']+','error'\);\}/);
+ assert.match(app,/function reportActionError\(error\)\{const message=typeof error\?\.message/);
+ assert.doesNotMatch(app,/That didn’t work\. Please try again\./);
  assert.doesNotMatch(app,/toast\(e\.message(?:\|\|[^)]*)?,'error'\)/);
 });

@@ -1,7 +1,13 @@
 import {decryptCredentials,encryptCredentials,validateCredentialEntries} from './core.mjs';
 
-export async function writeListingConfiguration(db,listingId,{credentials,transferInstructions='',rentalOptions=[]},key){
- const fields=validateCredentialEntries(credentials);
+export function listingDatabaseFailure(error,fallback){
+ const code=String(error?.code||'DATABASE_ERROR');
+ const reason=code==='42501'?'the server database role is missing permission':code==='23503'?'the seller account or related listing record is missing':code==='23514'?'one or more listing fields violate the listing rules':code==='23505'?'a listing with this generated code already exists':code==='PGRST202'?'the listing configuration migration is missing':code==='DATABASE_ERROR'?'the database did not return a listing record':`the database returned error code ${code}`;
+ const failure=new Error(`${fallback}: ${reason}.`);failure.code=code;return failure;
+}
+
+export async function writeListingConfiguration(db,listingId,{credentials,transferInstructions='',rentalOptions=[]},key,{allowEmptyCredentials=false}={}){
+ const fields=allowEmptyCredentials&&Array.isArray(credentials)&&credentials.length===0?[]:validateCredentialEntries(credentials);
  const encrypted=await Promise.all(fields.map(async field=>{
   const secret=await encryptCredentials(field.value,key);
   return{label:field.label,ciphertext:secret.ciphertext,iv:secret.iv,sort_order:field.sort_order};
@@ -14,7 +20,7 @@ export async function writeListingConfiguration(db,listingId,{credentials,transf
  const {data,error}=await db.rpc('replace_listing_configuration',{
   p_listing:listingId,p_credentials:encrypted,p_transfer_ciphertext:transfer?.ciphertext||null,p_transfer_iv:transfer?.iv||null,p_rental_options:options,
  });
- if(error||data!==true)throw new Error('Could not securely save listing fields');
+ if(error||data!==true){const code=String(error?.code||'LISTING_CONFIGURATION_SAVE_FAILED');const message=code==='42501'?'The server cannot save listing credentials. Check the Edge Function database permissions.':code==='P0001'?'Add at least one credential before publishing this listing.':'Could not securely save the listing details. Check the database migration and try again.';const failure=new Error(message);failure.code=code;throw failure;}
 }
 
 export async function readListingConfiguration(db,listingId,key){
