@@ -1,3 +1,4 @@
+import {sendPush} from '../_shared/push.ts';
 import {flwRequest,json,service,env} from '../_shared/server.ts';
 import {validateFlutterwaveKey} from '../_shared/core.mjs';
 import {webhookRequestStatus} from '../_shared/webhook.mjs';
@@ -32,6 +33,7 @@ Deno.serve(async req=>{
   if(verifiedStatus!=='successful')return json({received:true,status:'pending'});
   const {data:result,error:applyError}=await db.rpc('apply_payment_result',{p_order:order.id,p_tx:verified});
   if(applyError)throw new Error('Could not settle the verified payment');
+  if(result?.ok&&!result?.duplicate)await sendPush({event_type:'payment_confirmed',order_id:order.id});
   return json({received:true,...result});
  }catch(error){
   const message=String((error as Error)?.message||'webhook processing failed');

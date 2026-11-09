@@ -12,3 +12,16 @@ verify_jwt = false
 
 [functions.flutterwave-webhook]
 verify_jwt = false
+
+[functions.vendor]
+verify_jwt = true
+
+[functions.order-chat]
+verify_jwt = true
+
+[functions.order-chat-upload]
+verify_jwt = true
+
+[functions.send-push]
+# The handler accepts only a service-role bearer token or the dedicated cron token.
+verify_jwt = false

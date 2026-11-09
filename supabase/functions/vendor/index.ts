@@ -1,0 +1,47 @@
+import {body,env,fail,identity,json,service} from '../_shared/server.ts';
+import {readListingConfiguration,writeListingConfiguration} from '../_shared/listings.mjs';
+import {requireRole} from '../_shared/core.mjs';
+const games=['Bloodstrike','Free Fire','Call of Duty'],types=['instant','assisted','rental'];
+function values(data:any){const game=String(data.game||''),price=Number(data.price),description=String(data.description||'').trim().slice(0,700),delivery_type=String(data.delivery_type||'instant'),rental_options=Array.isArray(data.rental_options)?data.rental_options:[];if(!games.includes(game)||!Number.isSafeInteger(price)||price<1||!description||!types.includes(delivery_type))throw new Error('invalid listing details');if(delivery_type==='rental'&&!rental_options.length)throw new Error('rental listings need at least one duration and price');return{game,price,description,delivery_type,rental_options};}
+Deno.serve(async req=>{
+ if(req.method==='OPTIONS')return new Response('ok',{headers:{'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type','Access-Control-Allow-Methods':'POST, OPTIONS'}});
+ try{
+  const {user}=await identity(req),role=requireRole(user,['vendor']),data=await body(req),db=service(),key=env('CREDENTIALS_ENCRYPTION_KEY');
+  const {data:profile,error:profileError}=await db.from('vendor_profiles').select('user_id,verified_partner').eq('user_id',user.id).maybeSingle();if(profileError||!profile)throw new Error('vendor profile is not enabled; contact Arcade Store support');
+  const own=async(id:string)=>{const {data:l,error}=await db.from('listings').select('*').eq('id',id).eq('owner_vendor_id',user.id).eq('seller_id',user.id).maybeSingle();if(error||!l)throw new Error('listing not found');return l;};
+  if(data.action==='overview'){
+   const {data:listings,error}=await db.from('listings').select('id,status,price').eq('owner_vendor_id',user.id).neq('status','deleted');if(error)throw new Error('could not load vendor listings');
+   const {data:items,error:itemError}=await db.from('order_items').select('order_id,net,delivery_type,listing_id,game,orders!inner(status,created_at,order_code,amount,delivery_status)').eq('owner_vendor_id',user.id).eq('orders.status','paid').order('created_at',{ascending:false,foreignTable:'orders'}).limit(100);if(itemError)throw new Error('could not load vendor sales');
+   return json({verified_partner:profile.verified_partner,listings:listings||[],paid_items:items||[]});
+  }
+  if(data.action==='listings'){
+   const {data:listings,error}=await db.from('listings').select('id,listing_code,game,price,description,status,photo_path,delivery_type,created_at').eq('owner_vendor_id',user.id).order('created_at',{ascending:false});if(error)throw new Error('could not load vendor listings');
+   const ids=(listings||[]).map((x:any)=>x.id),options=ids.length?await db.from('listing_rental_options').select('listing_id,duration_days,price,enabled').in('listing_id',ids):{data:[]};
+   return json({listings:(listings||[]).map((l:any)=>({...l,photo_url:l.photo_path?db.storage.from('listing-photos').getPublicUrl(l.photo_path).data.publicUrl:'',rental_options:(options.data||[]).filter((o:any)=>o.listing_id===l.id)}))});
+  }
+  if(data.action==='orders'){
+   const {data:items,error}=await db.from('order_items').select('order_id,listing_id,game,gross,net,delivery_type,delivery_status,rental_started_at,rental_expires_at,orders!inner(id,order_code,amount,status,created_at,paid_at,delivery_status)').eq('owner_vendor_id',user.id).order('created_at',{ascending:false,foreignTable:'orders'}).limit(200);if(error)throw new Error('could not load vendor orders');const ids=[...new Set((items||[]).filter((i:any)=>i.orders?.status==='paid'&&['assisted','rental'].includes(i.delivery_type)).map((i:any)=>i.order_id))];let unread=new Map();if(ids.length){const [{data:read},{data:messages}]=await Promise.all([db.from('chat_read_state').select('order_id,last_read_at').eq('user_id',user.id).in('order_id',ids),db.from('chat_messages').select('order_id,sender_id,created_at').in('order_id',ids)]);const last=new Map((read||[]).map((r:any)=>[r.order_id,new Date(r.last_read_at).getTime()]));for(const m of messages||[])if(m.sender_id!==user.id&&new Date(m.created_at).getTime()>(last.get(m.order_id)||0))unread.set(m.order_id,(unread.get(m.order_id)||0)+1);}return json({orders:(items||[]).map((i:any)=>({...i,unread_count:unread.get(i.order_id)||0}))});
+  }
+  if(data.action==='create_listing'){
+   const v=values(data),{rental_options,...columns}=v;const {data:l,error}=await db.from('listings').insert({seller_id:user.id,owner_type:'vendor',owner_vendor_id:user.id,...columns,status:'draft'}).select('id').single();if(error||!l)throw new Error('could not create listing');
+   try{await writeListingConfiguration(db,l.id,{credentials:data.credentials,transferInstructions:data.transfer_instructions,rentalOptions:v.delivery_type==='rental'?v.rental_options:[]},key);}catch(e){await db.from('listings').delete().eq('id',l.id);throw e;}return json({listing_id:l.id});
+  }
+  if(data.action==='get_listing'){
+   const l=await own(String(data.listing_id||'')),config=await readListingConfiguration(db,l.id,key);return json({...l,...config,photo_url:l.photo_path?db.storage.from('listing-photos').getPublicUrl(l.photo_path).data.publicUrl:''});
+  }
+  if(data.action==='update_listing'){
+   const l=await own(String(data.listing_id||''));if(['reserved','held','sold','rented','deleted'].includes(l.status))throw new Error('listing cannot be edited in its current status');const v=values(data);const {error}=await db.from('listings').update({game:v.game,price:v.price,description:v.description,delivery_type:v.delivery_type,updated_by:user.id,updated_at:new Date().toISOString()}).eq('id',l.id);if(error)throw new Error('could not update listing');await writeListingConfiguration(db,l.id,{credentials:data.credentials,transferInstructions:data.transfer_instructions,rentalOptions:v.delivery_type==='rental'?v.rental_options:[]},key);return json({ok:true});
+  }
+  if(data.action==='set_listing_photo'){
+   const l=await own(String(data.listing_id||''));if(['reserved','held','sold','rented'].includes(l.status))throw new Error('listing photo cannot be changed in its current status');const path=String(data.photo_path||'');if(!path.startsWith(`${user.id}/${l.id}/`))throw new Error('invalid photo path');const {error}=await db.from('listings').update({photo_path:path,updated_by:user.id,updated_at:new Date().toISOString()}).eq('id',l.id);if(error)throw new Error('could not save listing photo');if(l.photo_path&&l.photo_path!==path)await db.storage.from('listing-photos').remove([l.photo_path]);return json({ok:true});
+  }
+  if(data.action==='publish_listing'){
+   const l=await own(String(data.listing_id||''));if(!['draft','paused','hidden','active','published'].includes(l.status))throw new Error('listing cannot be activated from this state');const {count}=await db.from('listing_credentials').select('id',{count:'exact',head:true}).eq('listing_id',l.id);const {data:legacy}=await db.from('listing_secrets').select('listing_id').eq('listing_id',l.id).maybeSingle();if(!count&&!legacy)throw new Error('add credentials before publishing');if(l.delivery_type==='rental'){const {count:n}=await db.from('listing_rental_options').select('id',{count:'exact',head:true}).eq('listing_id',l.id).eq('enabled',true);if(!n)throw new Error('add an available rental duration before publishing');}const {error}=await db.from('listings').update({status:'active',updated_by:user.id,updated_at:new Date().toISOString()}).eq('id',l.id);if(error)throw new Error('could not activate listing');return json({ok:true});
+  }
+  if(data.action==='hide_listing'||data.action==='delete_listing'){
+   const l=await own(String(data.listing_id||''));if(['reserved','held','sold','rented'].includes(l.status))throw new Error('reserved, paid, or rented listings cannot be changed');if(data.action==='hide_listing'){const {error}=await db.from('listings').update({status:'paused',updated_by:user.id,updated_at:new Date().toISOString()}).eq('id',l.id);if(error)throw new Error('could not pause listing');return json({ok:true});}
+   for(const table of ['listing_credentials','listing_transfer_instructions','listing_rental_options','listing_secrets'])await db.from(table).delete().eq('listing_id',l.id);if(l.photo_path)await db.storage.from('listing-photos').remove([l.photo_path]);const {error}=await db.from('listings').update({status:'deleted',deleted_at:new Date().toISOString(),updated_by:user.id,updated_at:new Date().toISOString()}).eq('id',l.id);if(error)throw new Error('could not delete listing');return json({ok:true});
+  }
+  throw new Error('unknown vendor action');
+ }catch(error){return fail(error);}
+});

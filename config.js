@@ -3,5 +3,6 @@
 window.ARCADESTORE_CONFIG = Object.freeze({
   supabaseUrl: 'https://yuejcomfxczdbjlgxcsw.supabase.co',
   supabaseAnonKey: 'sb_publishable_zbaUfBPcmZ94zKx601X9Qw_isp2xcHI',
+  vapidPublicKey: 'BC_s5RXbI2JEUNNjQwRWCmIqFaBdsX8jBuhvnI1RYqa6HBIN9YSb0QOEoG2YGhSO1RCJ-C3glC0j_FU56CsVz2Y',
   demoMode: false,
 });

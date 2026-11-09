@@ -41,3 +41,25 @@ self.addEventListener('fetch',event=>{
     return await update.catch(()=>Response.error());
   }));
 });
+
+// Push payloads are displayed directly and never written to Cache Storage.
+self.addEventListener('push',event=>{
+  let payload={};
+  try{payload=event.data?.json()||{};}catch{payload={body:event.data?.text()||''};}
+  const title=String(payload.title||'Arcade Store').slice(0,120);
+  const body=String(payload.body||'You have an update.').slice(0,240);
+  const target=new URL(payload.url||'./',new URL('./',self.location.href));
+  if(target.origin!==self.location.origin)target.href=new URL('./',self.location.href).href;
+  event.waitUntil(self.registration.showNotification(title,{body,icon:new URL('./assets/icons/icon-192.png',self.location).href,badge:new URL('./assets/icons/icon-192.png',self.location).href,data:{url:target.href},tag:String(payload.tag||'arcade-store').slice(0,120)}));
+});
+
+self.addEventListener('notificationclick',event=>{
+  event.notification.close();
+  const target=new URL(event.notification.data?.url||'./',new URL('./',self.location.href));
+  if(target.origin!==self.location.origin)target.href=new URL('./',self.location.href).href;
+  event.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(async clients=>{
+    const existing=clients.find(client=>new URL(client.url).origin===self.location.origin);
+    if(existing){await existing.navigate(target.href);return existing.focus();}
+    return self.clients.openWindow(target.href);
+  }));
+});
