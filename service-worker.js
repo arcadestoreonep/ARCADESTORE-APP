@@ -1,8 +1,8 @@
-const CACHE_NAME='arcade-store-shell-v2';
+const CACHE_NAME='arcade-store-shell-v3';
 const SHELL_FILES=[
   './','./index.html','./offline.html','./styles.css','./config.js','./src/main.js','./manifest.json',
   './assets/arcade-mark.svg','./assets/icons/icon-192.png','./assets/icons/icon-512.png','./assets/icons/icon-maskable-512.png','./assets/icons/apple-touch-icon.png',
-  './assets/backgrounds/arcade-emerald-flow.svg','./assets/backgrounds/clear-blue.jpg','./assets/backgrounds/emerald-light.jpg','./assets/backgrounds/emerald-wave.jpg','./assets/backgrounds/organic-green.jpg','./assets/backgrounds/purple-glow.jpg',
+  './assets/backgrounds/arcade-emerald-flow.svg',
   './assets/games/bloodstrike.jpg','./assets/games/call-of-duty.jpg','./assets/games/free-fire.jpg'
 ];
 const STATIC_URLS=new Set(SHELL_FILES.map(path=>new URL(path,self.location).href));
