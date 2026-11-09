@@ -62,10 +62,10 @@ test('browser config points to the intended Supabase project and the app has no 
  }
 });
 
-test('landing uses only the three supplied static game images; signed-in routing stays on Market',async()=>{
+test('landing uses only the three supplied static game images; ordinary signed-in startup stays on Market',async()=>{
  const app=await read('../src/main.js');
  for(const path of ['./assets/games/bloodstrike.jpg','./assets/games/free-fire.jpg','./assets/games/call-of-duty.jpg'])assert.match(app,new RegExp(path.replaceAll('.','\\.')));
- assert.match(app,/async function init\(\)[\s\S]*if\(state\.backend&&state\.session\)\{setScreen\('Market'\)/);
+ assert.match(app,/async function init\(\)[\s\S]*if\(state\.backend&&state\.session\)\{if\(state\.screen==='home'\)setScreen\('Market'\);else render\(\);/);
  assert.doesNotMatch(app,/state\.gameArt\[game\]/);
  const startup=app.match(/async function init\(\)\{([^}]+(?:\}[^}]+)?)\}/)?.[1]||'';
  assert.doesNotMatch(startup,/loadGameArt/);

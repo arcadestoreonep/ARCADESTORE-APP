@@ -61,3 +61,10 @@ test('server-only sender has no endpoint or subscription key logging and trigger
  assert.match(payment,/event_type:'payment_confirmed'/);assert.match(webhook,/event_type:'payment_confirmed'/);assert.match(chat,/event_type:'chat_message'.*message_id/);assert.match(upload,/event_type:'chat_message'.*message_id/);
  for(const source of [chat,upload])assert.doesNotMatch(source,/sendPush\(\{[^}]*message(?:_text)?\s*:/s);
 });
+
+test('notification deep links preserve buyer, vendor and owner routes through app startup',async()=>{
+ const app=await read('../src/main.js');
+ assert.match(app,/if\(route==='Vendor'&&state\.role==='vendor'\)\{state\.screen='Vendor';state\.vendorTab=params\.get\('vendor_tab'\)\|\|'Orders';\}/);
+ assert.match(app,/if\(route==='Admin'&&\['owner','admin'\]\.includes\(state\.role\)\)\{state\.screen='Admin';state\.adminTab=params\.get\('admin_tab'\)\|\|'Orders';\}/);
+ assert.match(app,/if\(state\.screen==='home'\)setScreen\('Market'\);else render\(\);await handlePaymentReturn\(\);/);
+});
