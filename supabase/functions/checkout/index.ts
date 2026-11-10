@@ -1,5 +1,5 @@
 import {body,env,fail,featureMap,flwRequest,identity,json,service} from '../_shared/server.ts';
-import {commissionPercentFromConfig,requireFeature,requireRole,resolveCheckoutRouting,validateFlutterwaveKey} from '../_shared/core.mjs';
+import {requireFeature,requireRole,resolveCheckoutRouting,validateFlutterwaveKey} from '../_shared/core.mjs';
 import {flutterwavePaymentRequest} from '../_shared/operations.mjs';
 
 Deno.serve(async req=>{
@@ -11,17 +11,16 @@ Deno.serve(async req=>{
   const secret=env(String(rawMode).toLowerCase()==='live'?'FLW_LIVE_SECRET_KEY':'FLW_TEST_SECRET_KEY');
   const mode=validateFlutterwaveKey(rawMode,secret);
   if(mode==='live')requireFeature(flags,'live_payments');
-  const commissionPercent=commissionPercentFromConfig(env('PLATFORM_COMMISSION_PERCENT'));
   const {error:holdError}=await db.rpc('expire_orders');if(holdError)throw new Error('Could not refresh payment attempts');
   const {error:reservationError}=await db.rpc('expire_reservations');if(reservationError)throw new Error('Could not refresh reservations');
   await db.rpc('expire_rentals');
   const txRef=`arcadestore-${crypto.randomUUID()}`;
-  const {data:order,error}=await db.rpc('create_cart_order',{p_buyer:user.id,p_tx_ref:txRef,p_commission_percent:commissionPercent});
+  const {data:order,error}=await db.rpc('create_cart_order',{p_buyer:user.id,p_tx_ref:txRef});
   if(error)throw new Error(error.message);
   try{
-   const {data:items,error:itemError}=await db.from('order_items').select('gross,owner_type,owner_vendor_id,vendor_subaccount_id').eq('order_id',order.id);
+   const {data:items,error:itemError}=await db.from('order_items').select('owner_type,owner_vendor_id,vendor_subaccount_id').eq('order_id',order.id);
    if(itemError||!items?.length)throw new Error('Could not determine order recipients');
-   const routing=resolveCheckoutRouting(items,commissionPercent);
+   const routing=resolveCheckoutRouting(items);
    const returnBase=env('SITE_URL',false)||'https://arcadestoreonep.github.io/ARCADESTORE-APP/';
    const returnUrl=new URL(returnBase);returnUrl.searchParams.set('payment_return','1');returnUrl.searchParams.set('order_id',order.id);
    const payload=flutterwavePaymentRequest({reference:txRef,amount:order.amount,redirectUrl:returnUrl.toString(),email:user.email||`user-${user.id}@example.invalid`,orderId:order.id,subaccounts:routing.subaccounts});

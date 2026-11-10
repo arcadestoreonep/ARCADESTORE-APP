@@ -52,6 +52,16 @@ test('photo bucket migration sets 5 MiB and JPEG, PNG, WebP without deleting dat
  assert.doesNotMatch(sql,/\bdelete\b|\bdrop\b/i);
 });
 
+test('Edge Function service-role grants cover direct listing, chat, order, and push queries',async()=>{
+ const migration=await read('../supabase/migrations/202611100002_service_role_edge_table_grants.sql');
+ for(const table of ['listing_credentials','listing_transfer_instructions','listing_rental_options','vendor_profiles','order_chats','chat_messages','chat_read_state','orders','order_items','push_subscriptions','push_preferences'])assert.match(migration,new RegExp(`public\\.${table}\\b`),`${table} needs a server grant`);
+ assert.match(migration,/grant select on public\.listing_credentials,[\s\S]*?to service_role/);
+ assert.match(migration,/grant select, insert, update on public\.vendor_profiles to service_role/);
+ assert.match(migration,/grant select, insert on public\.chat_messages to service_role/);
+ assert.match(migration,/grant select, insert, update on public\.chat_read_state to service_role/);
+ assert.doesNotMatch(migration,/to anon|to authenticated/i);
+});
+
 test('browser config points to the intended Supabase project and the app has no stale provider references',async()=>{
  const config=await read('../config.js');
  const authConfig=await read('../supabase/config.toml');
@@ -134,17 +144,27 @@ test('chat policies scope access to a paid buyer, exact vendor owner, or owner s
  assert.match(upload,/owner_vendor_id===user\.id/);
 });
 
-test('checkout split and vendor console secrets stay on backend; no recipient comes from UI',async()=>{
+test('checkout routes vendor subaccount IDs server-side and never computes fee amounts',async()=>{
  const checkout=await read('../supabase/functions/checkout/index.ts');
  const core=await read('../supabase/functions/_shared/core.mjs');
+ const routingMigration=await read('../supabase/migrations/202611100003_subaccount_dashboard_routing.sql');
  const vendor=await read('../supabase/functions/vendor/index.ts');
  const admin=await read('../supabase/functions/admin/index.ts');
  const release=await read('../supabase/functions/release-reservation/index.ts');
  const credentials=await read('../supabase/functions/order-credentials/index.ts');
- assert.match(checkout,/env\('PLATFORM_COMMISSION_PERCENT'\)/);
+ assert.doesNotMatch(checkout,/PLATFORM_COMMISSION_PERCENT|p_commission_percent/);
+ assert.match(checkout,/create_cart_order',\{p_buyer:user\.id,p_tx_ref:txRef\}/);
  assert.match(checkout,/vendor_subaccount_id/);
- assert.match(core,/transaction_charge_type:'flat_subaccount'/);
- assert.match(core,/if\(!item\.owner_vendor_id\|\|!item\.vendor_subaccount_id\)/);
+ assert.ok(checkout.indexOf("db.rpc('create_cart_order'")<checkout.indexOf("flwRequest(secret,"),'the database must reject missing subaccounts before Flutterwave is called');
+ assert.ok(checkout.indexOf('resolveCheckoutRouting(items)')<checkout.indexOf('flwRequest(secret,'),'routing validation must finish before Flutterwave is called');
+ assert.match(core,/subaccounts\.set\(item\.vendor_subaccount_id,\{id:item\.vendor_subaccount_id\}\)/);
+ assert.match(core,/Ask the Arcade Store owner to add the vendor Flutterwave subaccount ID/);
+ assert.doesNotMatch(core,/commission|transaction_charge|percentage|gross\s*\*/i);
+ assert.match(routingMigration,/create function public\.create_cart_order\(p_buyer uuid,p_tx_ref text\)/);
+ assert.match(routingMigration,/raise exception 'Vendor payment setup is incomplete\.[\s\S]*?';/);
+ assert.ok(routingMigration.indexOf("if r.owner_type='vendor' and r.flw_subaccount_id is null")<routingMigration.indexOf('insert into public.order_items'),'missing subaccounts must abort the database function before order items are created');
+ assert.match(routingMigration,/r\.item_price,0,r\.item_price/);
+ assert.doesNotMatch(routingMigration,/p_commission_percent|transaction_charge|round\([^)]*\/|percentage/i);
  assert.match(vendor,/requireRole\(user,\['vendor'\]\)/);
  assert.match(vendor,/eq\('owner_vendor_id',user\.id\)/);
  assert.match(admin,/if\(data\.action==='set_vendor_profile'\)[\s\S]*ownerOnly\(\)/);
@@ -155,4 +175,9 @@ test('checkout split and vendor console secrets stay on backend; no recipient co
  assert.match(app,/apiFunction\('checkout',\{\}\)/);
  assert.doesNotMatch(app,/apiFunction\('checkout',\{[^}]*?(?:subaccount|recipient)/i);
  assert.match(app,/order-chat-upload/);
+});
+
+test('commission secret is absent from current configuration, checkout, helpers, and docs',async()=>{
+ const files=['../.env.example','../README.md','../supabase/functions/checkout/index.ts','../supabase/functions/_shared/core.mjs','../supabase/functions/_shared/operations.mjs'];
+ for(const file of files)assert.doesNotMatch(await read(file),/PLATFORM_COMMISSION_PERCENT/i,file);
 });

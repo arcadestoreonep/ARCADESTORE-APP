@@ -4,21 +4,16 @@ export function userRole(user){return user?.app_metadata?.role||'buyer';}
 export function requireRole(user,allowed){const role=userRole(user);if(!allowed.includes(role))throw new Error('forbidden');return role;}
 export function requireFeature(flags,key){if(!Object.hasOwn(DEFAULT_FLAGS,key))throw new Error('unknown feature');if(!flags?.[key])throw new Error('feature disabled');return true;}
 export function validateFlutterwaveKey(mode,secret){const selected=String(mode||'test').toLowerCase(),key=String(secret||'');if(!['test','live'].includes(selected))throw new Error('FLW_MODE must be test or live');if(selected==='test'&&!key.startsWith('FLWSECK_TEST-')||selected==='live'&&(!key.startsWith('FLWSECK-')||key.startsWith('FLWSECK_TEST-')))throw new Error('Flutterwave mode and server key do not match');return selected;}
-export function commissionAmounts(gross,isPlatformOwned,commissionPercent){if(!Number.isSafeInteger(gross)||gross<0)throw new Error('invalid amount');const percent=Number(commissionPercent);if(!Number.isFinite(percent)||percent<0||percent>100)throw new Error('PLATFORM_COMMISSION_PERCENT must be from 0 to 100');const fee=isPlatformOwned?0:Math.round(gross*percent/100);return{gross,commission:fee,net:gross-fee};}
-export function commissionPercentFromConfig(value){const percent=Number(value);if(!Number.isFinite(percent)||percent<0||percent>100)throw new Error('PLATFORM_COMMISSION_PERCENT must be from 0 to 100');return percent;}
-export function resolveCheckoutRouting(items,commissionPercent){
+export function resolveCheckoutRouting(items){
  if(!Array.isArray(items)||items.length===0)throw new Error('order has no items');
- const rate=commissionPercentFromConfig(commissionPercent),subaccounts=new Map();let platformGross=0,commissionTotal=0;
+ const subaccounts=new Map();
  for(const item of items){
   if(!['platform','vendor'].includes(item.owner_type))throw new Error('listing owner cannot be determined');
-  const gross=Number(item.gross);if(!Number.isSafeInteger(gross)||gross<=0)throw new Error('invalid order item amount');
-  if(item.owner_type==='platform'){if(item.owner_vendor_id)throw new Error('invalid platform listing owner');platformGross+=gross;continue;}
-  if(!item.owner_vendor_id||!item.vendor_subaccount_id)throw new Error('vendor Flutterwave subaccount is missing');
-  const amount=commissionAmounts(gross,false,rate);commissionTotal+=amount.commission;
-  const current=subaccounts.get(item.vendor_subaccount_id)||{id:item.vendor_subaccount_id,transaction_charge_type:'flat_subaccount',transaction_charge:0};
-  current.transaction_charge+=amount.net;subaccounts.set(item.vendor_subaccount_id,current);
+  if(item.owner_type==='platform'){if(item.owner_vendor_id)throw new Error('invalid platform listing owner');continue;}
+  if(!item.owner_vendor_id||!item.vendor_subaccount_id)throw new Error('Vendor payment setup is incomplete. Ask the Arcade Store owner to add the vendor Flutterwave subaccount ID before checkout.');
+  subaccounts.set(item.vendor_subaccount_id,{id:item.vendor_subaccount_id});
  }
- return{recipient:subaccounts.size?'split':'platform',subaccounts:[...subaccounts.values()],platformGross,commissionTotal,commissionPercent:rate};
+ return{recipient:subaccounts.size?'subaccount':'platform',subaccounts:[...subaccounts.values()]};
 }
 export function ledgerBalance(entries=[]){return entries.reduce((balance,row)=>balance+(row.direction==='credit'?Number(row.amount):-Number(row.amount)),0);}
 export function reservationExpired(reservation,now=Date.now()){return !reservation||reservation.status!=='active'||new Date(reservation.expires_at).getTime()<=now;}

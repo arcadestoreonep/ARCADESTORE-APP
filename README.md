@@ -87,7 +87,7 @@ No GitHub push or deployment has been performed.
 
 ## Test status and limits
 
-`npm test` covers 16 unit and mocked-operation cases: commission, ledger balance, expiry, default-off flags, app metadata roles, reservations, deletion, duplicate and mismatched settlement, encryption, reservation and checkout operations, verified and late payment reconciliation, and payout name/balance/unknown-status rules. It does not make real Supabase or Flutterwave calls.
+`npm test` covers unit and mocked-operation cases for ledger balance, expiry, default-off flags, app metadata roles, reservations, deletion, duplicate and mismatched settlement, encryption, vendor subaccount routing, checkout operations, verified and late payment reconciliation, and payout name/balance/unknown-status rules. It does not make real Supabase or Flutterwave calls.
 
 Browser walkthrough completed on the local preview: landing page, blank signup validation, preview OTP, marketplace, adding an account to the cart, and live reservation countdown. The layout was inspected at a 1280px desktop render and a 390 CSS-pixel responsive viewport. A real owner session and feature-flag changes cannot be tested until a Supabase project exists and its owner role is configured.
 
