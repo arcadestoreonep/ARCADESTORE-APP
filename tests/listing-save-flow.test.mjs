@@ -58,6 +58,29 @@ test('listing console query includes drafts and renderer prints each returned st
  assert.match(app,/No listings yet\./);
 });
 
+test('admin listing actions keep the listing id and do not inject malformed buttons',async()=>{
+ const app=await read('../src/main.js');
+ assert.doesNotMatch(app,/body=body\.replaceAll\(['"]<div class="button-row admin-listing-actions/);
+ assert.match(app,/data-action="publish-listing" data-id="\$\{esc\(l\.id\)\}"/);
+ assert.match(app,/t\.dataset\.id\|\|t\.closest\('\[data-listing-id\]'\)\?\.dataset\.listingId/);
+ const start=app.indexOf('function adminScreen('),end=app.indexOf('function vendorScreen(',start);
+ assert.ok(start>=0&&end>start,'admin renderer source is present');
+ const render=new Function('state','nav','esc','money','shortOrderId','appHeader',`${app.slice(start,end)};return adminScreen(true);`);
+ const html=render({role:'owner',adminTab:'Listings',flags:{admin_publishing:true},adminListings:[{id:'listing-test-id',listing_code:'ACCT-1',game:'Bloodstrike',price:10000,status:'draft',description:'Test listing'}]}, {hidden:false},String,value=>String(value),()=>'',()=> '');
+ assert.match(html,/<button class="button button-small" data-action="publish-listing" data-id="listing-test-id">Publish<\/button>/);
+ assert.match(html,/<button class="button button-small" data-action="edit-listing">Edit<\/button>/);
+ assert.doesNotMatch(html,/data-id="<button/);
+});
+
+test('payout UI is removed from the admin console and no payout refresh blocks listings',async()=>{
+ const app=await read('../src/main.js');
+ assert.doesNotMatch(app,/state\.adminTab==='Payouts'|data-action="check-payout"|id="bank-details-form"|id="cashout-form"/);
+ assert.doesNotMatch(app,/apiFunction\('payouts'/);
+ assert.doesNotMatch(app,/apiFunction\('admin',\{action:'dashboard'/);
+ assert.doesNotMatch(app,/Available balance|state\.balance/);
+ assert.match(app,/if\(!tabs\.includes\(state\.adminTab\)\)state\.adminTab='Dashboard'/);
+});
+
 test('server errors keep actionable reasons while browser logs only action, status, and code',async()=>{
  const app=await read('../src/main.js');
  const server=await read('../supabase/functions/_shared/server.ts');
