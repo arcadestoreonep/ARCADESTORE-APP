@@ -41,3 +41,16 @@ test('landing buttons follow their expected delegated routes and UI errors stay 
  assert.doesNotMatch(app,/That didn’t work\. Please try again\./);
  assert.doesNotMatch(app,/toast\(e\.message(?:\|\|[^)]*)?,'error'\)/);
 });
+
+test('recovery OTP length matches the live Supabase Auth configuration',async()=>{
+ const app=await read('../src/main.js');
+ const verify=await read('../supabase/functions/verify-otp/index.ts');
+ const config=await read('../supabase/config.toml');
+ assert.match(config,/otp_length\s*=\s*8/);
+ assert.match(app,/const OTP_LENGTH=8/);
+ assert.match(app,/Preview mode code: 00000000/);
+ assert.match(app,/code!=='00000000'/);
+ assert.match(app,/\^\\d\{8\}\$/);
+ assert.match(verify,/\^\\d\{8\}\$/);
+ assert.doesNotMatch(verify,/\^\\d\{6\}\$/);
+});

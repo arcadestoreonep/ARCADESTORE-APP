@@ -2,7 +2,12 @@ project_id = "yuejcomfxczdbjlgxcsw"
 
 [auth]
 site_url = "https://arcadestoreonep.github.io/ARCADESTORE-APP/"
-additional_redirect_urls = ["http://localhost:4173/**", "http://127.0.0.1:4173/**", "https://arcadestoreonep.github.io/ARCADESTORE-APP/", "https://arcadestoreonep.github.io/ARCADESTORE-APP/login.html"]
+additional_redirect_urls = ["http://localhost:4173/**", "http://127.0.0.1:4173/**", "http://localhost:8000/**", "http://127.0.0.1:8000/**", "https://arcadestoreonep.github.io/ARCADESTORE-APP/", "https://arcadestoreonep.github.io/ARCADESTORE-APP/login.html"]
+
+[auth.email]
+enable_confirmations = true
+max_frequency = "1m"
+otp_length = 8
 
 [functions.sign-in]
 verify_jwt = false

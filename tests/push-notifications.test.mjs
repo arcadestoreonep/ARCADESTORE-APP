@@ -46,6 +46,8 @@ test('push subscription and preferences tables enforce authenticated self access
 
 test('service worker displays push and safely opens same-origin notification destinations without caching push data',async()=>{
  const source=await read('../service-worker.js'),listeners=new Map(),shown=[],opened=[],navigated=[];
+ assert.match(source,/const CACHE_NAME='arcade-store-shell-v6'/);
+ assert.match(source,/\.\/src\/main\.js/);
  const client={url:'https://site.test/app/',navigate:async url=>navigated.push(url),focus:async()=>{}};
  const self={location:new URL('https://site.test/app/service-worker.js'),clients:{matchAll:async()=>[],openWindow:async url=>opened.push(url)},registration:{showNotification:async(title,options)=>shown.push({title,options})},addEventListener:(type,fn)=>listeners.set(type,fn)};
  vm.runInNewContext(source,{self,URL,Response,Promise,caches:{},fetch(){},console});

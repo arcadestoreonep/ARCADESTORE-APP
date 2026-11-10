@@ -54,8 +54,11 @@ test('photo bucket migration sets 5 MiB and JPEG, PNG, WebP without deleting dat
 
 test('browser config points to the intended Supabase project and the app has no stale provider references',async()=>{
  const config=await read('../config.js');
+ const authConfig=await read('../supabase/config.toml');
  const files=['../config.js','../supabase/config.toml','../supabase/functions/flutterwave-webhook/index.ts'];
  assert.match(config,/https:\/\/yuejcomfxczdbjlgxcsw\.supabase\.co/);
+ assert.match(authConfig,/http:\/\/localhost:8000\/\*\*/);
+ assert.match(authConfig,/http:\/\/127\.0\.0\.1:8000\/\*\*/);
  for(const file of files){
   const contents=await read(file);
   assert.doesNotMatch(contents,/ephqgcpjntjotavkbrxb|bjmxpfwwgtavgxclqqgo|payscrow/i,file);

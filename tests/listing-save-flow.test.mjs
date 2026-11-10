@@ -50,6 +50,40 @@ test('draft configuration permits empty credentials only for drafts, publish sti
  assert.match(admin,/if\(!count&&!legacy\)throw new Error\('Add at least one credential before publishing this listing\.'/);
 });
 
+test('new listing draft starts with an empty credential row accepted by the draft path',async()=>{
+ const app=await read('../src/main.js');
+ assert.match(app,/credentials=existing\.credentials\?\.length\?existing\.credentials:\[\{label:'',value:''\}\]/);
+ const start=app.indexOf('function collectCredentialEntries(form){');
+ const end=app.indexOf('\nfunction rentalOptionRow(',start);
+ assert.ok(start>=0&&end>start,'credential collector is present');
+ const collect=new Function(`${app.slice(start,end)};return collectCredentialEntries;`)();
+ const blankRow={querySelector:selector=>({value:''})};
+ assert.deepEqual(collect({querySelectorAll:()=>[blankRow]}),[]);
+ const filledRow={querySelector:selector=>({value:selector.includes('label')?'Game login':'player@example.test'})};
+ assert.deepEqual(collect({querySelectorAll:()=>[filledRow]}),[{label:'Game login',value:'player@example.test'}]);
+});
+
+test('saving a blank-credential draft sends the draft payload and does not publish it',async()=>{
+ const app=await read('../src/main.js');
+ const start=app.indexOf('async function createListing(saveAsDraft=false){');
+ const end=app.indexOf('\n function newListingModal(',start);
+ assert.ok(start>=0&&end>start,'createListing source is present');
+ const blankRow={querySelector:()=>({value:''})};
+ const calls=[],errors=[];
+ const form={reportValidity:()=>true,elements:{photo:{files:[]}},dataset:{listingId:''},querySelectorAll:()=>[blankRow],closest:()=>({remove(){}})};
+ const data={game:'Bloodstrike',price:'10000',description:'A complete account listing.',delivery_type:'instant',transfer_instructions:''};
+ class FakeFormData{get(key){return data[key]??null;}}
+ const state={backend:true,role:'owner',user:{id:'owner-test'},adminTab:'Dashboard'};
+ const run=new Function('state','document','FormData','collectCredentialEntries','apiFunction','refreshMarket','refreshVendorData','refreshAdminData','render','toast','reportActionError',`${app.slice(start,end)};return createListing;`)(state,{querySelector:()=>form},FakeFormData,()=>[],async(_name,payload)=>{calls.push(payload);return{listing_id:'draft-test'};},async()=>{},async()=>{},async()=>{},()=>{},()=>{},error=>errors.push(error));
+ assert.equal(await run(true),true);
+ assert.equal(calls.length,1);
+ assert.equal(calls[0].action,'create_listing');
+ assert.equal(calls[0].save_as_draft,true);
+ assert.deepEqual(calls[0].credentials,[]);
+ assert.equal(calls.some(call=>call.action==='publish_listing'),false);
+ assert.deepEqual(errors,[]);
+});
+
 test('listing console query includes drafts and renderer prints each returned status',async()=>{
  const app=await read('../src/main.js');
  const admin=await read('../supabase/functions/admin/index.ts');
@@ -68,8 +102,36 @@ test('admin listing actions keep the listing id and do not inject malformed butt
  const render=new Function('state','nav','esc','money','shortOrderId','appHeader',`${app.slice(start,end)};return adminScreen(true);`);
  const html=render({role:'owner',adminTab:'Listings',flags:{admin_publishing:true},adminListings:[{id:'listing-test-id',listing_code:'ACCT-1',game:'Bloodstrike',price:10000,status:'draft',description:'Test listing'}]}, {hidden:false},String,value=>String(value),()=>'',()=> '');
  assert.match(html,/<button class="button button-small" data-action="publish-listing" data-id="listing-test-id">Publish<\/button>/);
- assert.match(html,/<button class="button button-small" data-action="edit-listing">Edit<\/button>/);
+ assert.match(html,/<button class="button button-small" data-action="edit-listing" data-id="listing-test-id">Edit<\/button>/);
  assert.doesNotMatch(html,/data-id="<button/);
+});
+
+test('publish, pause, and delete are sent by exactly one delegated handler',async()=>{
+ const app=await read('../src/main.js');
+ assert.equal((app.match(/if\(\['publish-listing','hide-listing','delete-listing'\]\.includes\(action\)\)/g)||[]).length,1);
+ assert.doesNotMatch(app,/const endpointAction=action==='publish-listing'\?/);
+});
+
+test('admin data refresh loads only the selected section and keeps secondary endpoints from hiding listings',async()=>{
+ const app=await read('../src/main.js');
+ assert.match(app,/const requiredAction=tab==='Listings'\?'list_listings':tab==='Orders'\?'list_orders':tab==='Sales'&&state\.role==='owner'\?'list_sales':tab==='Users'&&state\.role==='owner'\?'list_admins':null/);
+ assert.match(app,/const actions=tab==='Dashboard'\?\['list_listings','list_orders'\]:requiredAction\?\[requiredAction\]:\[\]/);
+ assert.match(app,/Promise\.allSettled\(actions\.map\(action=>apiFunction\('admin',\{action\}\)\)\)/);
+ assert.match(app,/if\(requiredError\)throw requiredError/);
+ assert.match(app,/if\(state\.backend\)refreshAdminData\(\)\.then\(/);
+});
+
+test('opening Listings requests only list_listings and preserves its returned rows',async()=>{
+ const app=await read('../src/main.js');
+ const start=app.indexOf('async function refreshAdminData(){');
+ const end=app.indexOf('\nasync function signin(',start);
+ assert.ok(start>=0&&end>start,'refreshAdminData source is present');
+ const refresh=new Function('state','apiFunction','reportActionError',`${app.slice(start,end)};return refreshAdminData;`);
+ const state={backend:true,role:'owner',adminTab:'Listings',adminListings:[]},actions=[];
+ const load=refresh(state,async(_name,body)=>{actions.push(body.action);return{listings:[{id:'draft-1',status:'draft'}]};},()=>{});
+ await load();
+ assert.deepEqual(actions,['list_listings']);
+ assert.deepEqual(state.adminListings,[{id:'draft-1',status:'draft'}]);
 });
 
 test('payout UI is removed from the admin console and no payout refresh blocks listings',async()=>{
