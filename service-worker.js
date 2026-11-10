@@ -1,4 +1,6 @@
-const CACHE_NAME='arcade-store-shell-v3';
+// Bump this when shipping front-end fixes so installed copies replace stale
+// JavaScript and styles instead of serving the previous app shell once more.
+const CACHE_NAME='arcade-store-shell-v4';
 const SHELL_FILES=[
   './','./index.html','./offline.html','./styles.css','./config.js','./src/main.js','./manifest.json',
   './assets/arcade-mark.svg','./assets/icons/icon-192.png','./assets/icons/icon-512.png','./assets/icons/icon-maskable-512.png','./assets/icons/apple-touch-icon.png',
